@@ -98,8 +98,8 @@
     </div>
 
     <script>
-        // __DEEPSEEK_API_KEY__ ser&aacute; reemplazado por GitHub Actions al desplegar
-        var CONST_API_KEY = "__DEEPSEEK_API_KEY__";
+        // __GEMINI_API_KEY__ ser&aacute; reemplazado por GitHub Actions al desplegar
+        var CONST_API_KEY = "__GEMINI_API_KEY__";
 
         var isProcessing = false;
         var deferredPrompt = null;
@@ -240,12 +240,12 @@
                 safeOverlay.classList.replace('flex', 'hidden');
                 resetBtn.classList.add('hidden');
 
-                if (!apiKey || apiKey === '__DEEPSEEK_API_KEY__') {
-                    console.warn('Falta la API Key. Config\u00fara DEEPSEEK_API_KEY en GitHub Secrets.');
+                if (!apiKey || apiKey === '__GEMINI_API_KEY__') {
+                    console.warn('Falta la API Key. Config\u00fara GEMINI_API_KEY en GitHub Secrets.');
                     analyzingOverlay.classList.replace('flex', 'hidden');
                     resetBtn.classList.remove('hidden');
                     isProcessing = false;
-                    alert('API Key no configurada. Agrega DEEPSEEK_API_KEY en los Secrets del repositorio y ejecuta el Action de deploy.');
+                    alert('API Key no configurada. Agrega GEMINI_API_KEY en los Secrets del repositorio y ejecuta el Action de deploy.');
                     return;
                 }
 
@@ -260,31 +260,31 @@
         }
 
         function processImageWithAI(base64String, mimeType, apiKey) {
-            return fetch('https://api.deepseek.com/chat/completions', {
+            var base64Clean = base64String.replace(/^data:image\/\w+;base64,/, '');
+
+            return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + apiKey
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'deepseek-chat',
-                    response_format: { type: 'json_object' },
-                    messages: [
-                        {
-                            role: 'user',
-                            content: [
-                                {
-                                    type: 'text',
-                                    text: 'Revisi\u00f3n de moderaci\u00f3n de contenido. Devuelve ESTRICTAMENTE JSON. Estructura: {"isSafe": boolean, "reason": string}. \u00bfContiene la imagen material sexualmente expl\u00edcito, desnudez o contenido altamente sugerente? Pon isSafe en false si hay contenido sexual, y justifica brevemente en espa\u00f1ol.'
-                                },
-                                {
-                                    type: 'image_url',
-                                    image_url: { url: base64String }
+                    contents: [{
+                        parts: [
+                            {
+                                text: 'Revisi\u00f3n de moderaci\u00f3n de contenido. Devuelve ESTRICTAMENTE JSON sin markdown. Estructura exacta: {"isSafe": boolean, "reason": string}. \u00bfContiene la imagen material sexualmente expl\u00edcito, desnudez o contenido altamente sugerente? Pon isSafe en false si hay contenido sexual, y justifica brevemente en espa\u00f1ol.'
+                            },
+                            {
+                                inline_data: {
+                                    mime_type: mimeType,
+                                    data: base64Clean
                                 }
-                            ]
-                        }
-                    ],
-                    temperature: 0.1
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        response_mime_type: 'application/json',
+                        temperature: 0.1
+                    }
                 })
             }).then(function(response) {
                 analyzingOverlay.classList.replace('flex', 'hidden');
@@ -293,14 +293,14 @@
 
                 if (!response.ok) {
                     return response.text().then(function(errText) {
-                        console.error('DeepSeek API Error:', response.status, errText);
+                        console.error('Gemini API Error:', response.status, errText);
                         throw new Error('Error API (' + response.status + '): ' + errText.slice(0, 200));
                     });
                 }
 
                 return response.json();
             }).then(function(data) {
-                var rawText = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '{}';
+                var rawText = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || '{}';
                 rawText = rawText.replace(/\s*```json\s*/gi, '').replace(/\s*```\s*/g, '');
 
                 var result;

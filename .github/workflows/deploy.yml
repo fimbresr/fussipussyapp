@@ -24,7 +24,7 @@ jobs:
 
       - name: Inyectar API Key
         run: |
-          sed -i "s|__DEEPSEEK_API_KEY__|${{ secrets.DEEPSEEK_API_KEY }}|g" index.html
+          sed -i "s|__GEMINI_API_KEY__|${{ secrets.GEMINI_API_KEY }}|g" index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
