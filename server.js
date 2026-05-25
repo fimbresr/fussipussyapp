@@ -2,6 +2,29 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+// Cargar archivo .env de forma manual y segura (sin dependencias)
+try {
+  const envPath = path.join(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    const envConfig = fs.readFileSync(envPath, 'utf8');
+    envConfig.split('\n').forEach(line => {
+      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+      if (match) {
+        const key = match[1];
+        let value = match[2] || '';
+        if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
+          value = value.substring(1, value.length - 1);
+        } else if (value.length > 0 && value.charAt(0) === "'" && value.charAt(value.length - 1) === "'") {
+          value = value.substring(1, value.length - 1);
+        }
+        process.env[key] = value.trim();
+      }
+    });
+  }
+} catch (e) {
+  console.warn('Error al cargar archivo .env:', e.message);
+}
+
 const PORT = 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
