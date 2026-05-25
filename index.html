@@ -265,7 +265,7 @@
                     return;
                 }
 
-                return processImageWithAI(base64, file.type, apiKey);
+                return processImageWithAI(base64);
             }).catch(function(err) {
                 console.error('Error procesando imagen:', err);
                 analyzingOverlay.classList.replace('flex', 'hidden');
@@ -275,10 +275,14 @@
             });
         }
 
-        function processImageWithAI(base64String, mimeType, apiKey) {
+        function processImageWithAI(base64String) {
+            var mimeMatch = base64String.match(/^data:(image\/\w+);base64,/);
+            var actualMime = mimeMatch ? mimeMatch[1] : 'image/png';
             var base64Clean = base64String.replace(/^data:image\/\w+;base64,/, '');
 
-            return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
+            console.log('Enviando imagen | MIME:', actualMime, '| Tamaño base64:', (base64Clean.length / 1024).toFixed(1) + 'KB');
+
+            return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + CONST_API_KEY, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -291,7 +295,7 @@
                             },
                             {
                                 inline_data: {
-                                    mime_type: mimeType,
+                                    mime_type: actualMime,
                                     data: base64Clean
                                 }
                             }
