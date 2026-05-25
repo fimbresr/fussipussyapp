@@ -25,6 +25,7 @@ jobs:
       - name: Inyectar API Key
         run: |
           sed -i "s|__OPENAI_API_KEY__|${{ secrets.OPENAI_API_KEY }}|g" index.html
+          sed -i "s|__OPENAI_API_KEY__|${{ secrets.OPENAI_API_KEY }}|g" diag.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

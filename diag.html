@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Diagnostico</title></head>
+<body style="background:#111;color:#fff;font:14px monospace;padding:20px">
+<h2>TEST OpenAI - Diagnostico</h2>
+<pre id="out" style="background:#000;padding:10px"></pre>
+
+<script>
+var o=document.getElementById("out");
+function L(t){o.textContent+=t+"\n";}
+
+var K="__OPENAI_API_KEY__";
+L("Key placeholder: "+K.substring(0,30)+"...");
+
+if(K==="__OPENAI_API_KEY__"){L("ERROR: Key no inyectada");}else{L("Key OK: inyectada");}
+
+var img=new Image();
+img.onload=function(){
+ var c=document.createElement("canvas");c.width=1;c.height=1;
+ c.getContext("2d").drawImage(img,0,0);
+ var b64=c.toDataURL("image/jpeg");
+ L("Imagen test creada: "+b64.length+" chars");
+
+ fetch("https://api.openai.com/v1/chat/completions",{
+  method:"POST",
+  headers:{"Content-Type":"application/json","Authorization":"Bearer "+K},
+  body:JSON.stringify({
+   model:"gpt-4o-mini",
+   messages:[{role:"user",content:[
+    {type:"text",text:"Di HOLA en mayusculas."},
+    {type:"image_url",image_url:{url:b64}}
+   ]}],
+   max_tokens:10
+  })
+ }).then(r=>{L("Status: "+r.status);return r.json();})
+ .then(d=>{L("Modelo: "+d.model);L("Respuesta: "+(d.choices?d.choices[0].message.content:"ERROR: "+JSON.stringify(d)));})
+ .catch(e=>L("FETCH ERROR: "+e.message));
+};
+img.src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+</script>
+</body>
+</html>
