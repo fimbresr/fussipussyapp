@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TEST Gemini Vision</title>
+</head>
+<body style="background:#111;color:#fff;font-family:monospace;padding:40px;text-align:center">
+    <h2>TEST - Gemini Directo</h2>
+    <input type="file" id="f" accept="image/*" style="margin:20px">
+    <pre id="log" style="text-align:left;background:#000;padding:10px;max-width:600px;margin:auto;white-space:pre-wrap;font-size:11px"></pre>
+
+    <script>
+        var L = document.getElementById('log');
+        function log(t) { L.textContent += t + '\n'; console.log(t); }
+
+        log('Pagina cargada. Selecciona una imagen.');
+
+        document.getElementById('f').addEventListener('change', async function(e) {
+            L.textContent = '';
+            var file = e.target.files[0];
+            if (!file) return;
+
+            log('Archivo: ' + file.name + ' | type: ' + file.type + ' | size: ' + (file.size/1024).toFixed(0) + 'KB');
+
+            if (!file.type || !file.type.startsWith('image/')) {
+                log('ERROR: No es imagen. type=' + JSON.stringify(file.type));
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = async function(ev) {
+                var b64 = ev.target.result;
+                log('Base64 OK. Largo: ' + b64.length + ' chars');
+                
+                var clean = b64.replace(/^data:image\/\w+;base64,/, '');
+                var mimeMatch = b64.match(/^data:(image\/\w+);base64,/);
+                var mime = mimeMatch ? mimeMatch[1] : 'image/png';
+
+                log('Llamando a Gemini 2.0 Flash...');
+                log('MIME: ' + mime + ' | Tamanio b64: ' + (clean.length/1024).toFixed(1) + 'KB');
+
+                try {
+                    var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyB_rgEQNd60yVWQ0MAIG8_Mv8R6aCA9XLg', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            contents: [{parts: [
+                                {text: 'Describe brevemente esta imagen en espanol. Max 10 palabras.'},
+                                {inline_data: {mime_type: mime, data: clean}}
+                            ]}],
+                            generationConfig: {temperature: 0.1}
+                        })
+                    });
+
+                    log('Status HTTP: ' + r.status);
+
+                    if (!r.ok) {
+                        var errT = await r.text();
+                        log('ERROR API: ' + errT);
+                        return;
+                    }
+
+                    var data = await r.json();
+                    log('Respuesta: ' + JSON.stringify(data, null, 2));
+
+                    var text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'NO_TEXT';
+                    log('>>> ' + text);
+
+                } catch(err) {
+                    log('EXCEPCION: ' + err.message);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>
