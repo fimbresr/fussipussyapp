@@ -7,13 +7,13 @@ exports.handler = async (event) => {
     };
   }
 
-  const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-  if (!DEEPSEEK_API_KEY) {
+  if (!OPENAI_API_KEY) {
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'API Key no configurada en el servidor' })
+      body: JSON.stringify({ error: 'API Key (OPENAI_API_KEY) no configurada en el servidor' })
     };
   }
 
@@ -39,14 +39,14 @@ exports.handler = async (event) => {
   }
 
   try {
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
         messages: [
           {
@@ -63,17 +63,18 @@ exports.handler = async (event) => {
             ]
           }
         ],
+        max_tokens: 300,
         temperature: 0.1
       })
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('DeepSeek API error:', response.status, errText);
+      console.error('OpenAI API error:', response.status, errText);
       return {
         statusCode: 502,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: `Error de DeepSeek API (${response.status})` })
+        body: JSON.stringify({ error: `Error de OpenAI API (${response.status})` })
       };
     }
 
@@ -90,7 +91,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 502,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Error al contactar DeepSeek API' })
+      body: JSON.stringify({ error: 'Error al contactar OpenAI API' })
     };
   }
 };

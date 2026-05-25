@@ -111,9 +111,7 @@
     </div>
 
     <script>
-        // __OPENAI_API_KEY__ ser&aacute; reemplazado por GitHub Actions al desplegar
-        var CONST_API_KEY = "__OPENAI_API_KEY__";
-        console.log('Fushipusyapp v3 | API: OpenAI GPT-4o-mini | Key configurada:', CONST_API_KEY !== '__OPENAI_API_KEY__');
+        console.log('Fushipusyapp v3 | API: OpenAI GPT-4o-mini via Backend Proxy');
 
         var isProcessing = false;
         var deferredPrompt = null;
@@ -244,8 +242,6 @@
                 return;
             }
 
-            var apiKey = CONST_API_KEY;
-
             resizeImage(file, 1024, 1024, 0.8).then(function(base64) {
                 isProcessing = true;
                 dropZone.style.display = 'none';
@@ -259,15 +255,6 @@
                 safeOverlay.classList.replace('flex', 'hidden');
                 resetBtn.classList.add('hidden');
 
-                if (!apiKey || apiKey === '__OPENAI_API_KEY__') {
-                    console.warn('Falta la API Key. Config\u00fara OPENAI_API_KEY en GitHub Secrets.');
-                    analyzingOverlay.classList.replace('flex', 'hidden');
-                    resetBtn.classList.remove('hidden');
-                    isProcessing = false;
-                    alert('API Key no configurada. Agrega OPENAI_API_KEY en los Secrets del repositorio y ejecuta el Action de deploy.');
-                    return;
-                }
-
                 return processImageWithAI(base64);
             }).catch(function(err) {
                 console.error('Error procesando imagen:', err);
@@ -279,32 +266,15 @@
         }
 
         function processImageWithAI(base64String) {
-            console.log('Enviando a OpenAI | Tamano base64:', (base64String.length / 1024).toFixed(1) + 'KB');
+            console.log('Enviando a proxy backend | Tamano base64:', (base64String.length / 1024).toFixed(1) + 'KB');
 
-            return fetch('https://api.openai.com/v1/chat/completions', {
+            return fetch('/api/analyze', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + CONST_API_KEY
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    response_format: { type: 'json_object' },
-                    messages: [{
-                        role: 'user',
-                        content: [
-                            {
-                                type: 'text',
-                                text: 'Revisi\u00f3n de moderaci\u00f3n de contenido. Devuelve ESTRICTAMENTE JSON sin markdown. Estructura exacta: {"isSafe": boolean, "reason": string}. \u00bfContiene la imagen material sexualmente expl\u00edcito, desnudez o contenido altamente sugerente? Pon isSafe en false si hay contenido sexual, y justifica brevemente en espa\u00f1ol.'
-                            },
-                            {
-                                type: 'image_url',
-                                image_url: { url: base64String }
-                            }
-                        ]
-                    }],
-                    max_tokens: 300,
-                    temperature: 0.1
+                    image: base64String
                 })
             }).then(function(response) {
                 analyzingOverlay.classList.replace('flex', 'hidden');
@@ -313,8 +283,8 @@
 
                 if (!response.ok) {
                     return response.text().then(function(errText) {
-                        console.error('OpenAI API Error:', response.status, errText);
-                        throw new Error('Error API (' + response.status + '): ' + errText.slice(0, 200));
+                        console.error('Backend Proxy Error:', response.status, errText);
+                        throw new Error('Error Proxy (' + response.status + '): ' + errText.slice(0, 200));
                     });
                 }
 
