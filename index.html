@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Fushipusyapp - Moderador IA</title>
+
+    <meta name="description" content="Moderación inteligente de contenido visual con IA">
+    <meta name="theme-color" content="#09090b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fushipusyapp">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        #install-banner {
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-[100dvh] bg-zinc-950 text-zinc-100 font-sans flex flex-col items-center py-10 px-4 selection:bg-rose-500/30">
+
+    <div id="install-banner" class="hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-zinc-900 border-t border-zinc-800">
+        <div class="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center shrink-0">
+                    <i data-lucide="shield" class="w-5 h-5 text-rose-500"></i>
+                </div>
+                <p class="text-sm text-zinc-300">Instala esta app para usarla sin conexi&oacute;n</p>
+            </div>
+            <button id="install-btn" class="bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shrink-0">Instalar</button>
+            <button id="dismiss-banner" class="text-zinc-500 hover:text-zinc-300 p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-2xl w-full flex flex-col items-center mb-8 text-center">
+        <div class="inline-flex items-center justify-center p-4 bg-zinc-900 border border-zinc-800 rounded-2xl mb-4 shadow-xl">
+            <i data-lucide="shield" class="w-10 h-10 text-rose-500"></i>
+        </div>
+        <h1 class="text-4xl font-bold tracking-tight mb-2 bg-gradient-to-br from-zinc-100 to-zinc-500 text-transparent bg-clip-text">Fushipusyapp</h1>
+        <p class="text-zinc-400 text-lg">Moderaci&oacute;n inteligente con DeepSeek Vision.</p>
+    </div>
+
+    <div class="max-w-xl w-full bg-zinc-900/50 border border-zinc-800 p-4 md:p-6 rounded-3xl backdrop-blur-xl">
+        <div id="drop-zone" class="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-800 p-8 md:p-12 text-center cursor-pointer hover:border-zinc-700 hover:bg-zinc-800/30 transition-all min-h-[280px]">
+            <input type="file" id="file-input" class="hidden" accept="image/*">
+            <div class="p-4 bg-zinc-950 rounded-full mb-4 border border-zinc-800/50">
+                <i data-lucide="upload" class="w-8 h-8 text-zinc-400"></i>
+            </div>
+            <h3 class="text-xl font-medium mb-1 text-zinc-200">Selecciona o arrastra una imagen</h3>
+            <p class="text-zinc-500 text-sm">Validaci&oacute;n autom&aacute;tica mediante Visi&oacute;n IA</p>
+        </div>
+
+        <div id="result-container" class="hidden relative overflow-hidden rounded-2xl bg-zinc-950 aspect-square md:aspect-[4/3] flex items-center justify-center border border-zinc-800 mt-4">
+            <img id="preview-image" class="w-full h-full object-cover transition-all duration-700">
+
+            <div id="analyzing-overlay" class="hidden absolute inset-0 z-10 flex-col items-center justify-center bg-zinc-950/60 backdrop-blur-sm">
+                <i data-lucide="loader-2" class="w-12 h-12 text-rose-500 spinner mb-4"></i>
+                <p class="text-lg font-medium text-white tracking-widest uppercase">Analizando...</p>
+            </div>
+
+            <div id="unsafe-overlay" class="hidden absolute inset-0 z-20 flex-col items-center justify-center p-6 text-center bg-zinc-950/40">
+                <div class="bg-red-500/20 p-4 rounded-full border border-red-500/30 mb-4 backdrop-blur-md">
+                    <i data-lucide="shield-alert" class="w-16 h-16 text-red-500"></i>
+                </div>
+                <h3 class="text-3xl font-bold text-white mb-2">Contenido Bloqueado</h3>
+                <p id="unsafe-reason" class="text-red-200 text-lg bg-red-950/80 border border-red-900/50 rounded-xl px-4 py-2 backdrop-blur-sm"></p>
+            </div>
+
+            <div id="safe-overlay" class="hidden absolute top-4 right-4 z-20 flex flex-row items-center gap-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 px-4 py-2 rounded-full backdrop-blur-md">
+                <i data-lucide="shield" class="w-5 h-5"></i>
+                <span class="font-semibold text-sm">SEGURO</span>
+            </div>
+
+            <button id="reset-btn" class="absolute top-4 left-4 z-30 bg-zinc-950/80 hover:bg-zinc-800 text-zinc-300 text-sm px-4 py-2 rounded-full border border-zinc-700/50 hidden transition-colors">Volver a intentar</button>
+        </div>
+    </div>
+
+    <div id="offline-badge" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm px-4 py-2 rounded-full backdrop-blur-md">
+        <div class="flex items-center gap-2">
+            <i data-lucide="wifi-off" class="w-4 h-4"></i>
+            <span>Sin conexi&oacute;n</span>
+        </div>
+    </div>
+
+    <script>
+        // __DEEPSEEK_API_KEY__ ser&aacute; reemplazado por GitHub Actions al desplegar
+        var CONST_API_KEY = "__DEEPSEEK_API_KEY__";
+
+        var isProcessing = false;
+        var deferredPrompt = null;
+
+        lucide.createIcons();
+
+        var dropZone = document.getElementById('drop-zone');
+        var fileInput = document.getElementById('file-input');
+        var resultContainer = document.getElementById('result-container');
+        var previewImage = document.getElementById('preview-image');
+        var analyzingOverlay = document.getElementById('analyzing-overlay');
+        var unsafeOverlay = document.getElementById('unsafe-overlay');
+        var unsafeReason = document.getElementById('unsafe-reason');
+        var safeOverlay = document.getElementById('safe-overlay');
+        var resetBtn = document.getElementById('reset-btn');
+        var installBanner = document.getElementById('install-banner');
+        var installBtn = document.getElementById('install-btn');
+        var dismissBanner = document.getElementById('dismiss-banner');
+        var offlineBadge = document.getElementById('offline-badge');
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(function(err) {
+                console.warn('SW registration failed:', err);
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBanner.classList.remove('hidden');
+        });
+
+        installBtn.addEventListener('click', function() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function() {
+                deferredPrompt = null;
+                installBanner.classList.add('hidden');
+            });
+        });
+
+        dismissBanner.addEventListener('click', function() {
+            installBanner.classList.add('hidden');
+        });
+
+        window.addEventListener('appinstalled', function() {
+            deferredPrompt = null;
+            installBanner.classList.add('hidden');
+        });
+
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                offlineBadge.classList.add('hidden');
+            } else {
+                offlineBadge.classList.remove('hidden');
+                setTimeout(function() { offlineBadge.classList.add('hidden'); }, 3000);
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        dropZone.addEventListener('click', function() {
+            if (!isProcessing) fileInput.click();
+        });
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            if (!isProcessing) dropZone.classList.add('border-rose-500', 'bg-rose-500/5');
+        });
+        dropZone.addEventListener('dragleave', function() {
+            dropZone.classList.remove('border-rose-500', 'bg-rose-500/5');
+        });
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-rose-500', 'bg-rose-500/5');
+            if (!isProcessing && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function resizeImage(file, maxWidth, maxHeight, quality) {
+            return new Promise(function(resolve, reject) {
+                var img = new Image();
+                var url = URL.createObjectURL(file);
+                img.onload = function() {
+                    URL.revokeObjectURL(url);
+                    var width = img.width;
+                    var height = img.height;
+                    if (width <= maxWidth && height <= maxHeight) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) { resolve(e.target.result); };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                        return;
+                    }
+                    var ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                    var canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = function() {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('No se pudo cargar la imagen'));
+                };
+                img.src = url;
+            });
+        }
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Archivo no v\u00e1lido. Por favor sube una imagen.');
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) {
+                alert('La imagen es demasiado grande. M\u00e1ximo 50MB.');
+                return;
+            }
+
+            var apiKey = CONST_API_KEY;
+
+            resizeImage(file, 1024, 1024, 0.8).then(function(base64) {
+                isProcessing = true;
+                dropZone.style.display = 'none';
+                resultContainer.classList.remove('hidden');
+
+                previewImage.src = base64;
+                previewImage.className = 'w-full h-full object-cover transition-all duration-700 blur-xl grayscale';
+
+                analyzingOverlay.classList.replace('hidden', 'flex');
+                unsafeOverlay.classList.replace('flex', 'hidden');
+                safeOverlay.classList.replace('flex', 'hidden');
+                resetBtn.classList.add('hidden');
+
+                if (!apiKey || apiKey === '__DEEPSEEK_API_KEY__') {
+                    console.warn('Falta la API Key. Config\u00fara DEEPSEEK_API_KEY en GitHub Secrets.');
+                    analyzingOverlay.classList.replace('flex', 'hidden');
+                    resetBtn.classList.remove('hidden');
+                    isProcessing = false;
+                    alert('API Key no configurada. Agrega DEEPSEEK_API_KEY en los Secrets del repositorio y ejecuta el Action de deploy.');
+                    return;
+                }
+
+                return processImageWithAI(base64, file.type, apiKey);
+            }).catch(function(err) {
+                console.error('Error procesando imagen:', err);
+                analyzingOverlay.classList.replace('flex', 'hidden');
+                resetBtn.classList.remove('hidden');
+                isProcessing = false;
+                alert('Error al procesar la imagen: ' + err.message);
+            });
+        }
+
+        function processImageWithAI(base64String, mimeType, apiKey) {
+            return fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + apiKey
+                },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    response_format: { type: 'json_object' },
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: 'Revisi\u00f3n de moderaci\u00f3n de contenido. Devuelve ESTRICTAMENTE JSON. Estructura: {"isSafe": boolean, "reason": string}. \u00bfContiene la imagen material sexualmente expl\u00edcito, desnudez o contenido altamente sugerente? Pon isSafe en false si hay contenido sexual, y justifica brevemente en espa\u00f1ol.'
+                                },
+                                {
+                                    type: 'image_url',
+                                    image_url: { url: base64String }
+                                }
+                            ]
+                        }
+                    ],
+                    temperature: 0.1
+                })
+            }).then(function(response) {
+                analyzingOverlay.classList.replace('flex', 'hidden');
+                resetBtn.classList.remove('hidden');
+                isProcessing = false;
+
+                if (!response.ok) {
+                    return response.text().then(function(errText) {
+                        console.error('DeepSeek API Error:', response.status, errText);
+                        throw new Error('Error API (' + response.status + '): ' + errText.slice(0, 200));
+                    });
+                }
+
+                return response.json();
+            }).then(function(data) {
+                var rawText = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '{}';
+                rawText = rawText.replace(/\s*```json\s*/gi, '').replace(/\s*```\s*/g, '');
+
+                var result;
+                try {
+                    result = JSON.parse(rawText);
+                } catch (parseErr) {
+                    console.error('Respuesta no es JSON v\u00e1lido:', rawText);
+                    throw new Error('El modelo no devolvi\u00f3 JSON v\u00e1lido. Intenta de nuevo.');
+                }
+
+                if (result.isSafe === false) {
+                    previewImage.className = 'w-full h-full object-cover transition-all duration-700 blur-3xl scale-110 brightness-50';
+                    unsafeReason.textContent = result.reason || 'Contenido expl\u00edcito bloqueado.';
+                    unsafeOverlay.classList.replace('hidden', 'flex');
+                } else {
+                    previewImage.className = 'w-full h-full object-cover transition-all duration-700';
+                    safeOverlay.classList.replace('hidden', 'flex');
+                }
+            }).catch(function(err) {
+                console.error('Error durante el an\u00e1lisis:', err);
+                analyzingOverlay.classList.replace('flex', 'hidden');
+                resetBtn.classList.remove('hidden');
+                isProcessing = false;
+                alert('No se pudo analizar la imagen: ' + err.message);
+            });
+        }
+
+        resetBtn.addEventListener('click', function() {
+            fileInput.value = '';
+            isProcessing = false;
+            dropZone.style.display = 'flex';
+            resultContainer.classList.add('hidden');
+            previewImage.src = '';
+            previewImage.className = 'w-full h-full object-cover transition-all duration-700';
+            analyzingOverlay.classList.replace('flex', 'hidden');
+            unsafeOverlay.classList.replace('flex', 'hidden');
+            safeOverlay.classList.replace('flex', 'hidden');
+        });
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
