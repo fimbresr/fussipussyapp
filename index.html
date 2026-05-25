@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Fushipusyapp - Moderador IA</title>
+    <title>Fushipusyapp v2 - Gemini</title>
 
     <meta name="description" content="Moderación inteligente de contenido visual con IA">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="theme-color" content="#09090b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -110,7 +113,7 @@
     <script>
         // __GEMINI_API_KEY__ ser&aacute; reemplazado por GitHub Actions al desplegar
         var CONST_API_KEY = "__GEMINI_API_KEY__";
-        console.log('Fushipusyapp v2 | API: Gemini 2.5 Flash | Key configurada:', CONST_API_KEY !== '__GEMINI_API_KEY__');
+        console.log('Fushipusyapp v2 | API: Gemini 2.0 Flash | Key configurada:', CONST_API_KEY !== '__GEMINI_API_KEY__');
 
         var isProcessing = false;
         var deferredPrompt = null;
@@ -275,7 +278,7 @@
         function processImageWithAI(base64String, mimeType, apiKey) {
             var base64Clean = base64String.replace(/^data:image\/\w+;base64,/, '');
 
-            return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey, {
+            return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
