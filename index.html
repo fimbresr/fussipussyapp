@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Fushipusyapp v2 - Gemini</title>
+    <title>Fushipusyapp v3 - OpenAI</title>
 
     <meta name="description" content="Moderación inteligente de contenido visual con IA">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -55,7 +55,7 @@
             <i data-lucide="shield" class="w-10 h-10 text-rose-500"></i>
         </div>
         <h1 class="text-4xl font-bold tracking-tight mb-2 bg-gradient-to-br from-zinc-100 to-zinc-500 text-transparent bg-clip-text">Fushipusyapp</h1>
-        <p class="text-zinc-400 text-lg">Moderaci&oacute;n inteligente con Google Gemini Vision.</p>
+        <p class="text-zinc-400 text-lg">Moderaci&oacute;n inteligente con OpenAI GPT-4o-mini.</p>
     </div>
 
     <div class="max-w-xl w-full bg-zinc-900/50 border border-zinc-800 p-4 md:p-6 rounded-3xl backdrop-blur-xl">
@@ -101,7 +101,7 @@
         </div>
     </div>
 
-    <p class="mt-8 text-zinc-700 text-xs">v2.0 &mdash; Gemini Vision</p>
+    <p class="mt-8 text-zinc-700 text-xs">v3.0 &mdash; OpenAI Vision</p>
 
     <div id="offline-badge" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm px-4 py-2 rounded-full backdrop-blur-md">
         <div class="flex items-center gap-2">
@@ -111,9 +111,9 @@
     </div>
 
     <script>
-        // __GEMINI_API_KEY__ ser&aacute; reemplazado por GitHub Actions al desplegar
-        var CONST_API_KEY = "__GEMINI_API_KEY__";
-        console.log('Fushipusyapp v2 | API: Gemini 2.0 Flash | Key configurada:', CONST_API_KEY !== '__GEMINI_API_KEY__');
+        // __OPENAI_API_KEY__ ser&aacute; reemplazado por GitHub Actions al desplegar
+        var CONST_API_KEY = "__OPENAI_API_KEY__";
+        console.log('Fushipusyapp v3 | API: OpenAI GPT-4o-mini | Key configurada:', CONST_API_KEY !== '__OPENAI_API_KEY__');
 
         var isProcessing = false;
         var deferredPrompt = null;
@@ -259,12 +259,12 @@
                 safeOverlay.classList.replace('flex', 'hidden');
                 resetBtn.classList.add('hidden');
 
-                if (!apiKey || apiKey === '__GEMINI_API_KEY__') {
-                    console.warn('Falta la API Key. Config\u00fara GEMINI_API_KEY en GitHub Secrets.');
+                if (!apiKey || apiKey === '__OPENAI_API_KEY__') {
+                    console.warn('Falta la API Key. Config\u00fara OPENAI_API_KEY en GitHub Secrets.');
                     analyzingOverlay.classList.replace('flex', 'hidden');
                     resetBtn.classList.remove('hidden');
                     isProcessing = false;
-                    alert('API Key no configurada. Agrega GEMINI_API_KEY en los Secrets del repositorio y ejecuta el Action de deploy.');
+                    alert('API Key no configurada. Agrega OPENAI_API_KEY en los Secrets del repositorio y ejecuta el Action de deploy.');
                     return;
                 }
 
@@ -279,35 +279,32 @@
         }
 
         function processImageWithAI(base64String) {
-            var mimeMatch = base64String.match(/^data:(image\/\w+);base64,/);
-            var actualMime = mimeMatch ? mimeMatch[1] : 'image/png';
-            var base64Clean = base64String.replace(/^data:image\/\w+;base64,/, '');
+            console.log('Enviando a OpenAI | Tamano base64:', (base64String.length / 1024).toFixed(1) + 'KB');
 
-            console.log('Enviando imagen | MIME:', actualMime, '| Tamaño base64:', (base64Clean.length / 1024).toFixed(1) + 'KB');
-
-            return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + CONST_API_KEY, {
+            return fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + CONST_API_KEY
                 },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [
+                    model: 'gpt-4o-mini',
+                    response_format: { type: 'json_object' },
+                    messages: [{
+                        role: 'user',
+                        content: [
                             {
+                                type: 'text',
                                 text: 'Revisi\u00f3n de moderaci\u00f3n de contenido. Devuelve ESTRICTAMENTE JSON sin markdown. Estructura exacta: {"isSafe": boolean, "reason": string}. \u00bfContiene la imagen material sexualmente expl\u00edcito, desnudez o contenido altamente sugerente? Pon isSafe en false si hay contenido sexual, y justifica brevemente en espa\u00f1ol.'
                             },
                             {
-                                inline_data: {
-                                    mime_type: actualMime,
-                                    data: base64Clean
-                                }
+                                type: 'image_url',
+                                image_url: { url: base64String }
                             }
                         ]
                     }],
-                    generationConfig: {
-                        response_mime_type: 'application/json',
-                        temperature: 0.1
-                    }
+                    max_tokens: 300,
+                    temperature: 0.1
                 })
             }).then(function(response) {
                 analyzingOverlay.classList.replace('flex', 'hidden');
@@ -316,14 +313,14 @@
 
                 if (!response.ok) {
                     return response.text().then(function(errText) {
-                        console.error('Gemini API Error:', response.status, errText);
+                        console.error('OpenAI API Error:', response.status, errText);
                         throw new Error('Error API (' + response.status + '): ' + errText.slice(0, 200));
                     });
                 }
 
                 return response.json();
             }).then(function(data) {
-                var rawText = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || '{}';
+                var rawText = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '{}';
                 rawText = rawText.replace(/\s*```json\s*/gi, '').replace(/\s*```\s*/g, '');
 
                 var result;
