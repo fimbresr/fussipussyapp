@@ -87,8 +87,18 @@
             </div>
 
             <button id="reset-btn" class="absolute top-4 left-4 z-30 bg-zinc-950/80 hover:bg-zinc-800 text-zinc-300 text-sm px-4 py-2 rounded-full border border-zinc-700/50 hidden transition-colors">Volver a intentar</button>
+
+            <div id="error-overlay" class="hidden absolute inset-0 z-10 flex-col items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-6 text-center">
+                <div class="bg-amber-500/20 p-4 rounded-full border border-amber-500/30 mb-4 backdrop-blur-md">
+                    <i data-lucide="alert-triangle" class="w-12 h-12 text-amber-500"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Error</h3>
+                <p id="error-text" class="text-amber-200 text-sm bg-amber-950/80 border border-amber-900/50 rounded-xl px-4 py-2 backdrop-blur-sm max-w-md break-all"></p>
+            </div>
         </div>
     </div>
+
+    <p class="mt-8 text-zinc-700 text-xs">v2.0 &mdash; Gemini Vision</p>
 
     <div id="offline-badge" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm px-4 py-2 rounded-full backdrop-blur-md">
         <div class="flex items-center gap-2">
@@ -100,6 +110,7 @@
     <script>
         // __GEMINI_API_KEY__ ser&aacute; reemplazado por GitHub Actions al desplegar
         var CONST_API_KEY = "__GEMINI_API_KEY__";
+        console.log('Fushipusyapp v2 | API: Gemini 2.5 Flash | Key configurada:', CONST_API_KEY !== '__GEMINI_API_KEY__');
 
         var isProcessing = false;
         var deferredPrompt = null;
@@ -115,6 +126,8 @@
         var unsafeReason = document.getElementById('unsafe-reason');
         var safeOverlay = document.getElementById('safe-overlay');
         var resetBtn = document.getElementById('reset-btn');
+        var errorOverlay = document.getElementById('error-overlay');
+        var errorText = document.getElementById('error-text');
         var installBanner = document.getElementById('install-banner');
         var installBtn = document.getElementById('install-btn');
         var dismissBanner = document.getElementById('dismiss-banner');
@@ -320,11 +333,12 @@
                     safeOverlay.classList.replace('hidden', 'flex');
                 }
             }).catch(function(err) {
-                console.error('Error durante el an\u00e1lisis:', err);
+                console.error('ERROR:', err.message);
                 analyzingOverlay.classList.replace('flex', 'hidden');
                 resetBtn.classList.remove('hidden');
                 isProcessing = false;
-                alert('No se pudo analizar la imagen: ' + err.message);
+                errorText.textContent = err.message;
+                errorOverlay.classList.replace('hidden', 'flex');
             });
         }
 
@@ -338,6 +352,7 @@
             analyzingOverlay.classList.replace('flex', 'hidden');
             unsafeOverlay.classList.replace('flex', 'hidden');
             safeOverlay.classList.replace('flex', 'hidden');
+            errorOverlay.classList.replace('flex', 'hidden');
         });
 
         lucide.createIcons();
